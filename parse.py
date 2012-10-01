@@ -3,7 +3,7 @@ Processes the data from whatever format it was captured in and renders
 it in a usable form to whoever's knocking.
 """
 
-# Standard
+# Standard modules
 import Tkinter, tkFileDialog
 import os
 from os import path
