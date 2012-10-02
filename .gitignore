@@ -1,1 +1,5 @@
 *.pyc
+*.cfg
+*.csv
+*.xlsx
+csvout.py
