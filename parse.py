@@ -39,7 +39,37 @@ def config(top_dir='.'):
     return {'samples':samples, 'points':points, 'mod_initial':mod_initial,
             'mod_final':mod_final, 'averages':averages, 'dt':dt}
     
-def data(top_dir='.', samples=1, points=1, averages=1, mod_initial=0,
+def load(dir, samples, points):
+    # Initialize storage arrays
+    pd_b = np.zeros((samples, points))
+    ref_b = np.zeros((samples, points))
+    v_b = np.zeros((samples, points))
+    i_b = np.zeros((samples, points))
+    pd_s = np.zeros((samples, points))
+    ref_s = np.zeros((samples, points))
+    v_s = np.zeros((samples, points))
+    i_s = np.zeros((samples, points))
+    
+    # Loop over all acquired files
+    for i in range(samples):
+        background = np.loadtxt(path.join(dir, 'Background%g.dat' % i),
+                                delimiter='\t', skiprows=2)
+        signal = np.loadtxt(path.join(dir, 'Signal%g.dat' % i),
+                            delimiter='\t', skiprows=2)
+    
+        pd_b[i,:] = background[:,0]
+        ref_b[i,:] = background[:,1]
+        v_b[i,:] = background[:,2]
+        i_b[i,:] = background[:,3]
+    
+        pd_s[i,:] = signal[:,0]
+        ref_s[i,:] = signal[:,1]
+        v_s[i,:] = signal[:,2]
+        i_s[i,:] = signal[:,3]
+    
+    return (pd_s, pd_b), (ref_s, ref_b)#, (v_s, v_b), (i_s, i_b)
+    
+def data(dir='.', samples=1, points=1, averages=1, mod_initial=0,
          mod_final=0, dt=1e-6):
     """Custom parser for measurement files.
     
@@ -55,41 +85,12 @@ def data(top_dir='.', samples=1, points=1, averages=1, mod_initial=0,
     top_dir -- the reference directory for measurement files (default '.')
     """
    
-    # Initialize storage arrays
-    pd_b = np.zeros((samples, points))
-    ref_b = np.zeros((samples, points))
-    v_b = np.zeros((samples, points))
-    i_b = np.zeros((samples, points))
-    pd_s = np.zeros((samples, points))
-    ref_s = np.zeros((samples, points))
-    v_s = np.zeros((samples, points))
-    i_s = np.zeros((samples, points))
-
-    trace_dir = path.join(top_dir, 'Scopes')
+    trace_dir = path.join(dir, 'Scopes')
     
-    # Loop over all acquired files
-    for i in range(samples):
-        background = np.loadtxt(path.join(trace_dir, 'Background%g.dat' % i),
-                                delimiter='\t', skiprows=2)
-        signal = np.loadtxt(path.join(trace_dir, 'Signal%g.dat' % i),
-                            delimiter='\t', skiprows=2)
-    
-        pd_b[i,:] = background[:,0]
-        ref_b[i,:] = background[:,1]
-        v_b[i,:] = background[:,2]
-        i_b[i,:] = background[:,3]
-    
-        pd_s[i,:] = signal[:,0]
-        ref_s[i,:] = signal[:,1]
-        v_s[i,:] = signal[:,2]
-        i_s[i,:] = signal[:,3]
-    
-    # Pass to preprocessor for background subtraction and baseline shift
-    (pd, v, i) = preprocess.data(pd_b, ref_b, v_b, i_b, pd_s, ref_s,
-                                    v_s, i_s)
+    pd, ref = load(trace_dir, samples, points)
                                         
-    ma2ghz = 0.8
+    ma2ghz = 0.7
     wavelength_range = np.linspace(mod_initial*ma2ghz, mod_final*ma2ghz,
                                    samples)
-    t = dt * np.arange(samples)
+    t = dt * np.arange(points)
     return pd, wavelength_range, t

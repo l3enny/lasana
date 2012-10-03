@@ -4,20 +4,19 @@ to your liking (just make sure it jives with parse.py if you're using
 it).
 """
 
+# Included
+import gui
+
 # Third party
 import numpy as np
 
-def data(pd_b, ref_b, v_b, i_b, pd_s, ref_s, v_s, i_s):
-    pd = pd_s - pd_b # subtract out plasma-related background
-    v = (v_b+v_s)/2 # both should be identical phenomena, average
-    i = (i_b+i_s)/2 # both should be identical phenomena, average
+def transmission(signal, reference): 
+    unabsorbed = np.mean(reference[0] - reference[1], axis=1)
     
-    # Correct for power variations due to current modulation
-    baseline_zero = np.mean(ref_b)   # Figure out zero intensity signal
-    baseline_max = np.mean(ref_s[-1,:]) # Find max signal (assumes last trace
-                                        # is the most intense!
-    baseline_range = baseline_max - baseline_zero
-    correction = baseline_range/np.mean(ref_s, axis=1)
-    pd = pd * correction[:, np.newaxis]
+    signal_total = signal[0]
+    signal_plasma = signal[1]
+    signal_corrected = signal_total - signal_plasma
     
-    return pd, v, i
+    baseline_adjusted = signal_corrected/unabsorbed[:, np.newaxis]
+    
+    return baseline_adjusted
