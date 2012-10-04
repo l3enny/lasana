@@ -33,7 +33,7 @@ def quickndirty(signal, wavelengths):
     f_0 = c/1082.9091140e-9
     kB = 1.3806503e-23
     temperatures = np.linspace(200, 1400, 1200)
-    adjust = -0.1e9
+    adjust = 0.05e9
     wavelengths = wavelengths*1e9 + adjust
     fwhm_p = torr*torr2hz
     fwhm_d = np.sqrt((8*math.log(2))*kB*temperatures/(M*c**2)) * f_0
@@ -46,28 +46,30 @@ def quickndirty(signal, wavelengths):
     synthetic_profiles = synthetic_profiles/norms[:, np.newaxis]
     
     transmission = 1 - signal
-    norms = np.max(transmission, axis=0)
-    transmission = transmission/norms
-    # plt.contourf(transmission, levels=np.linspace(0, 1, 100))
+    # norms = np.max(transmission, axis=0)
+    # transmission = transmission/norms
+    # plt.contourf(transmission, levels=np.linspace(np.min(transmission), np.max(transmission), 100))
     # plt.show()
 
     calculated_temperatures = np.zeros((transmission.shape[1]))
     # iterate through each time point
     for i in range(transmission.shape[1]):
-        errors = np.abs(synthetic_profiles - transmission[:, i])
+        peak = np.max(transmission[:,i])
+        errors = np.abs(peak * synthetic_profiles - transmission[:, i])
         errors_collapsed = np.sum(errors, axis=1)
         minimum = np.min(errors_collapsed)
         index = np.where(errors_collapsed == minimum)
         calculated_temperatures[i] = temperatures[index[0][0]]
         if i == 365:
+            print "Minimum Error =", minimum
             print "Temperature = ", temperatures[index[0][0]]
             plt.hold(True)
-            plt.plot(wavelengths, synthetic_profiles[index[0][0], :])
-            plt.plot(wavelengths, transmission[:, i])
-            plt.legend(['Synthetic','Measured'])
+            plt.plot(wavelengths, peak * synthetic_profiles[index[0][0], :])
+            plt.plot(wavelengths+adjust, transmission[:, i])
+            plt.legend(['Synthetic'])
             plt.show()
         
-    # plt.plot(calculated_temperatures)
-    # plt.xlabel('Temperature (K)')
-    # plt.show()
+    plt.plot(calculated_temperatures)
+    plt.ylabel('Temperature (K)')
+    plt.show()
     return calculated_temperatures

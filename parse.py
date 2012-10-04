@@ -27,17 +27,18 @@ def config(top_dir='.'):
         raise ConfigParser.Error('No settings file detected.')
     
     try:
-        samples = config.getint('Settings', 'Samples')
-        points = config.getint('Settings', 'Points')
+        samples = config.getint('Settings', 'Wavelength Samples')
+        points = config.getint('Settings', 'Data Points')
         mod_initial = config.getfloat('Settings', 'Initial Modulation')
         mod_final = config.getfloat('Settings', 'Final Modulation')
         averages = config.getint('Settings', 'Averages')
-        dt = config.getfloat('Settings', 'dt')
+        time_domain = config.getfloat('Settings', 'Time Domain')
+        pressure = config.getfloat('Settings', 'Pressure')
     except ConfigParser.NoOptionError:
         print "Settings file is not properly formatted, quitting."
         sys.exit(1)
     return {'samples':samples, 'points':points, 'mod_initial':mod_initial,
-            'mod_final':mod_final, 'averages':averages, 'dt':dt}
+            'mod_final':mod_final, 'averages':averages, 'dt':time_domain/points}
     
 def load(dir, samples, points):
     # Initialize storage arrays
@@ -70,7 +71,7 @@ def load(dir, samples, points):
     return (pd_s, pd_b), (ref_s, ref_b)#, (v_s, v_b), (i_s, i_b)
     
 def data(dir='.', samples=1, points=1, averages=1, mod_initial=0,
-         mod_final=0, dt=1e-6):
+         mod_final=0, dt=1e-6, pressure=1.0):
     """Custom parser for measurement files.
     
     Reads in the data related to a particular set of measurements. Assumes
@@ -89,7 +90,7 @@ def data(dir='.', samples=1, points=1, averages=1, mod_initial=0,
     
     pd, ref = load(trace_dir, samples, points)
                                         
-    ma2ghz = 0.7
+    ma2ghz = 0.8
     wavelength_range = np.linspace(mod_initial*ma2ghz, mod_final*ma2ghz,
                                    samples)
     t = dt * np.arange(points)
