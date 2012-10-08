@@ -13,7 +13,7 @@ def gaussian(fwhm):
         return 1/(sigma*sqrt(2*np.pi)) * np.exp(-0.5 * np.power(x/sigma, 2))
     return func
 
-def voigt(fwhm_d, fwhm_p):
+def voigt(fwhm_d, fwhm_a):
     """ Returns a Voigt function using wofz.
     
     This function generates a Voigt function and returns it to the user.
@@ -21,11 +21,12 @@ def voigt(fwhm_d, fwhm_p):
     more expensive than the pseudo-Voigt.
     
     Keyword arguments:
-    sigma -- Gaussian linewidth
-    gamma -- Lorentzian linewidth
+    fwhm_d -- FWHM of the Gaussian portion
+    fwhm_a -- FWHM of the Lorentzian portion
     """
     sigma = fwhm_d/(2*sqrt(2*log(2)))
-    gamma = fwhm_p/2
+    # TODO: Verify the factor of 0.5 for gamma!
+    gamma = fwhm_a/2
     def func(x):
         z = (x + 1j*gamma)/(sigma*sqrt(2))
         return wofz(z).real/(sigma*sqrt(2*np.pi))

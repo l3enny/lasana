@@ -15,7 +15,7 @@ import numpy as np
 # Part of package
 import preprocess
     
-def config(top_dir='.'):
+def config(top_dir='.', debug=False):
     # Parse the settings file, check for proper formatting
     config = ConfigParser.RawConfigParser()
     try:
@@ -34,13 +34,19 @@ def config(top_dir='.'):
         averages = config.getint('Settings', 'Averages')
         time_domain = config.getfloat('Settings', 'Time Domain')
         pressure = config.getfloat('Settings', 'Pressure')
+        offset = config.getfloat('Settings', 'Offset')
     except ConfigParser.NoOptionError:
         print "Settings file is not properly formatted, quitting."
         sys.exit(1)
     return {'samples':samples, 'points':points, 'mod_initial':mod_initial,
-            'mod_final':mod_final, 'averages':averages, 'dt':time_domain/points}
+            'mod_final':mod_final, 'averages':averages, 'dt':time_domain/points, 'pressure':pressure, 'offset':offset}
     
-def load(dir, samples, points):
+def _load(dir, samples, points, debug=False):
+    """Generate data arrays and load data from file.
+    
+    Private method for reading in data in the format determined by my exper-
+    iment. Modify as necessary.
+    """
     # Initialize storage arrays
     pd_b = np.zeros((samples, points))
     ref_b = np.zeros((samples, points))
@@ -70,8 +76,7 @@ def load(dir, samples, points):
     
     return (pd_s, pd_b), (ref_s, ref_b)#, (v_s, v_b), (i_s, i_b)
     
-def data(dir='.', samples=1, points=1, averages=1, mod_initial=0,
-         mod_final=0, dt=1e-6, pressure=1.0):
+def data(dir='.', debug=False, **settings):
     """Custom parser for measurement files.
     
     Reads in the data related to a particular set of measurements. Assumes
@@ -87,11 +92,6 @@ def data(dir='.', samples=1, points=1, averages=1, mod_initial=0,
     """
    
     trace_dir = path.join(dir, 'Scopes')
-    
-    pd, ref = load(trace_dir, samples, points)
-                                        
-    ma2ghz = 0.8
-    wavelength_range = np.linspace(mod_initial*ma2ghz, mod_final*ma2ghz,
-                                   samples)
-    t = dt * np.arange(points)
-    return pd, wavelength_range, t
+    pd, ref = _load(trace_dir, settings['samples'], settings['points'])
+    t = settings['dt'] * np.arange(settings['points'])
+    return pd, t

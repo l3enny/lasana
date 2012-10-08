@@ -1,75 +1,99 @@
 ﻿"""
-The mathematical component. Generates synthetic spectra. Runs comparison
+The mematical component. Generates synthetic spectra. Runs comparison
 algorithm. Tells you what you want to know. At present only considers
 Doppler broadening and pressure broadening. User must provide pressure
 broadening FWHM in angular frequency.
 """
 
 # Standard
-import math
+import math as m
 import matplotlib.pyplot as plt
+import matplotlib.text as mtext
 
 # Third Party
-import numpy as np
+import numpy as N
 from scipy import interpolate
 
 # Included
+from constants import *
 import lineshapes
+import misc
     
-def sigma(w0, w):
-    pass
+def sigma(initial, final, frequencies, Tg, debug=False, **settings):
+    A = 1.0216e7
+
+    f_0 = (final['E'] - initial['E'])/h
+    l = misc.vac2air(c/f_0)
+    fwhm_g = N.sqrt((8*m.log(2))*kB*Tg/(M_He*c**2)) * f_0
+    fwhm_a = settings['pressure'] * torr2hz
     
-def peak_find():
+    # Change this line to determine the lineshape that you desire
+    function = lineshapes.voigt(fwhm_g, fwhm_a)
+    profile = function(frequencies + settings['offset'])
+    return profile
+    # return 2 * N.pi * m.log(2) * final['g'] / initial['g'] * l**2 * A / 
+    
+def peak_find(debug=False):
     pass
 
-def get_temp(signal, wavelengths):
+def get_temp(signal, frequencies, debug=False):
     pass
     
-def quickndirty(signal, wavelengths):
-    torr = 7.0
-    torr2hz = 25.6e6
-    M = 4.002602 * 1.660538921e-27
-    c = 299792458
-    f_0 = c/1082.9091140e-9
-    kB = 1.3806503e-23
-    temperatures = np.linspace(200, 1400, 1200)
-    adjust = 0.05e9
-    wavelengths = wavelengths*1e9 + adjust
-    fwhm_p = torr*torr2hz
-    fwhm_d = np.sqrt((8*math.log(2))*kB*temperatures/(M*c**2)) * f_0
-    synthetic_profiles = np.zeros((len(temperatures), len(wavelengths)))
+def quickndirty(signal, initial, final, debug=False, **settings):
+
+    if debug:
+        check = [250, 450, 700, 1000, 1500, 1999]
+
+    Ti = 200
+    Tf = 1500
+    temperatures = N.linspace(Ti, Tf, Tf - Ti + 1)
+
+    freq_shift = (settings['mod_initial']*ma2hz, settings['mod_final']*ma2hz)
+    frequencies = N.linspace(freq_shift[0], freq_shift[1], settings['samples'])
+    
+    absorption_synthetic = N.zeros((len(temperatures), settings['samples']))
+    
     for i in range(len(temperatures)):
-        function = lineshapes.voigt(fwhm_d[i], fwhm_p)
-        # function = lineshapes.gaussian(fwhm_d[i])
-        synthetic_profiles[i, :] = function(wavelengths)
-    norms = np.array(np.max(synthetic_profiles, axis=1))
-    synthetic_profiles = synthetic_profiles/norms[:, np.newaxis]
+        absorption_synthetic[i, :] = sigma(initial, final, frequencies,
+                                           temperatures[i], **settings)
     
-    transmission = 1 - signal
-    # norms = np.max(transmission, axis=0)
-    # transmission = transmission/norms
-    # plt.contourf(transmission, levels=np.linspace(np.min(transmission), np.max(transmission), 100))
-    # plt.show()
+    # TODO: Eliminate normalization by using proper calculation of pathlength
+    # absorption
+    norms = N.array(N.max(absorption_synthetic, axis=1))
+    absorption_synthetic = absorption_synthetic/norms[:, N.newaxis]
+    
+    absorption = 1 - signal
 
-    calculated_temperatures = np.zeros((transmission.shape[1]))
+    # Initialize calculation arrays
+    Tcalc = N.zeros((absorption.shape[1]))
+    Terror = N.zeros(absorption.shape[1])
+    
     # iterate through each time point
-    for i in range(transmission.shape[1]):
-        peak = np.max(transmission[:,i])
-        errors = np.abs(peak * synthetic_profiles - transmission[:, i])
-        errors_collapsed = np.sum(errors, axis=1)
-        minimum = np.min(errors_collapsed)
-        index = np.where(errors_collapsed == minimum)
-        calculated_temperatures[i] = temperatures[index[0][0]]
-        if i == 365:
-            print "Minimum Error =", minimum
-            print "Temperature = ", temperatures[index[0][0]]
-            plt.hold(True)
-            plt.plot(wavelengths, peak * synthetic_profiles[index[0][0], :])
-            plt.plot(wavelengths+adjust, transmission[:, i])
-            plt.legend(['Synthetic'])
-            plt.show()
+    for i in range(settings['points']):
+        # TODO: Associated with normalization, should not be necessary once
+        # real metastable absorption is included
+        peak = N.max(absorption[:,i])
+        errors = N.abs(peak * absorption_synthetic - absorption[:, i])
         
-    plt.plot(calculated_temperatures)
-    plt.ylabel('Temperature (K)')
+        errors_collapsed = N.sum(errors, axis=1)
+        minimum = N.min(errors_collapsed)
+        Terror[i] = minimum/N.sum(absorption[:,i])
+        index = N.where(errors_collapsed == minimum)
+        Tcalc[i] = temperatures[index[0][0]]
+        
+        if debug:
+            if i == 0:
+                position = 230
+            if i in check:
+                position = position + 1
+                plt.subplot(position)
+                print 'Temperature (step %g):' % i, Tcalc[i]
+                print 'Error (step %g):' % i, Terror[i]
+                plt.plot(frequencies, peak * absorption_synthetic[index[0][0], :], '-k')
+                plt.plot(frequencies, absorption[:, i], '.r')
+                mtext.Text(3e9, 0.9, 'T$_g$ = %g' % Tcalc[i])
+                plt.axis([-4e9, 4e9, 0, 1])
+                t = i*settings['dt']*1e6
+                plt.title('Time = %g $\mu$s' % t)
     plt.show()
-    return calculated_temperatures
+    return Tcalc
