@@ -4,7 +4,7 @@
 This is a set of utilities meant to simplify the problem of analyzing laser absorption spectra. Its present development is determined by its use in measuring the absolute, line-integrated, densities of helium metastable atoms. It should also be able to analyze the temperature (via Doppler broadening), gas velocity (via Doppler shifts), and properly account for pressure broadening. While this is only a relatively simple profile analysis, it should be sufficiently accurate for basic diagnostics.
 
 ## Dependencies
-I'll try to keep these to a minimum. It's unlikely that this script uses any cutting edge features, so the version requirements are probably flexible. So far, there's:
+I'll try to keep these to a minimum. This script doesn't use any cutting edge features, so it will likely work with older versions, but these are the only ones tested thus far.
 
 * Numpy 1.6+
 * Scipy 0.11+
