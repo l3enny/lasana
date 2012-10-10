@@ -61,9 +61,6 @@ def get_temp(Ti, Tf, transitions, signal, steps=50, debug=False, **settings):
 
 def quickndirty(signal, transitions, debug=False, **settings):
 
-    if debug:
-        check = [250, 450, 700, 1000, 1500, 1999]
-
     Ti = 200
     Tf = 1500
     temperatures = N.linspace(Ti, Tf, 50)
@@ -83,7 +80,7 @@ def quickndirty(signal, transitions, debug=False, **settings):
     norms = N.array(N.max(absorption_synthetic, axis=1))
     absorption_synthetic = absorption_synthetic/norms[:, N.newaxis]
     
-    absorption = 1 - signal
+    absorption = 1 - signal + settings['voffset']
 
     # Initialize calculation arrays
     Tcalc = N.zeros((absorption.shape[1]))
@@ -99,18 +96,42 @@ def quickndirty(signal, transitions, debug=False, **settings):
         errors_collapsed = N.sum(errors, axis=1)
         Tcalc[i] = optimize(temperatures, errors_collapsed)
     
+    baseline = N.mean(absorption[:, 0:200], axis=1)
+    peak = N.max(baseline)
+    errors = N.abs(peak * absorption_synthetic - baseline)
+    errors_collapsed = N.sum(errors, axis=1)
+    Tbase = optimize(temperatures, errors_collapsed)
+    print "Baseline Temperature = %g (K)" % Tbase
+    match = sigma(transition, frequencies, Tbase, **settings)
+    
+    plt.plot(1e-9*frequencies, baseline, '.r')
+    plt.hold(True)
+    plt.plot(1e-9*frequencies, peak * match/N.max(match), '-k')
+    plt.axis([ma2hz*1e-9*settings['mod_initial'], ma2hz*1e-9*settings['mod_final'], 0, 1])
+    plt.xlabel('Frequency Shift (GHz)')
+    plt.ylabel('Absorption (a.u.)')
+    plt.title('Baseline Temperature, T = %g' % Tbase)
+    plt.show()
+    
     if debug:
+        # check = [220, 225, 230, 235, 240, 245]
+        check = [250, 450, 700, 1000, 1500, 1999]
         plt.hold(True)
         pos = 230
         for i in check:
             match = sigma(transition, frequencies, Tcalc[i], **settings)
-        
+            
+            header = "Frequency Shifts (Hz), Calculated Signal) (a.u.), Measured Signal (a.u.)"
+            data = N.column_stack((frequencies, match, absorption[:, i]))
+            
+            N.savetxt("t=%gus (T=%g).csv" % (i*settings['dt']*1e6, Tcalc[i]), data, delimiter=",")
+            
             pos = pos + 1
             plt.subplot(pos)
-            plt.plot(frequencies, N.max(absorption[:, i]) * match/N.max(match), '-k')
-            plt.plot(frequencies, absorption[:, i], '.r')
+            plt.plot(1e-9*frequencies, N.max(absorption[:, i]) * match/N.max(match), '-k')
+            plt.plot(1e-9*frequencies, absorption[:, i], '.r')
             mtext.Text(3e9, 0.9, 'T$_g$ = %g' % Tcalc[i])
-            plt.axis([-4e9, 4e9, 0, 1])
+            plt.axis([ma2hz*1e-9*settings['mod_initial'], ma2hz*1e-9*settings['mod_final'], 0, 1])
             t = i*settings['dt']*1e6
             plt.title('Time = %g $\mu$s' % t)
             

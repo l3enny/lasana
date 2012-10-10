@@ -2,5 +2,3 @@
 *.cfg
 *.csv
 *.xlsx
-csvout.py
-justload.py

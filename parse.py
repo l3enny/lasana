@@ -30,8 +30,9 @@ def config(top_dir='.', debug=False):
     time_domain = config.getfloat('Settings', 'Time Domain')
     pressure = config.getfloat('Settings', 'Pressure')
     offset = config.getfloat('Settings', 'Offset')
+    voffset = config.getfloat('Settings', 'Vertical Offset')
     return {'samples':samples, 'points':points, 'mod_initial':mod_initial,
-            'mod_final':mod_final, 'averages':averages, 'dt':time_domain/points, 'pressure':pressure, 'offset':offset}
+            'mod_final':mod_final, 'averages':averages, 'dt':time_domain/points, 'pressure':pressure, 'offset':offset, 'voffset':voffset}
     
 def _load(dir, samples, points, debug=False):
     """Generate data arrays and load data from file.
