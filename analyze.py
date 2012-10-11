@@ -12,41 +12,13 @@ import matplotlib.text as mtext
 
 # Third Party
 import numpy as N
-from scipy import interpolate
+import scipy.optimize
 
 # Included
 from constants import *
 import lineshapes
-import misc
-    
-def sigma(transition, frequencies, Tg, debug=False, **settings):
-    M = transition.M
-    f_0 = (transition.dE)/h
-    l = misc.vac2air(c/f_0)
-    fwhm_g = N.sqrt((8*m.log(2)) * kB*Tg / (M*c**2)) * f_0
-    fwhm_a = settings['pressure'] * torr2hz
-    
-    # Change this line to determine the lineshape that you desire
-    function = lineshapes.voigt(fwhm_g, fwhm_a)
-    
-    profile = function(frequencies + settings['offset'])
-    return profile
-    # return final['g'] / initial['g'] * l**2 * A / 
-    
-def peak_find(debug=False):
-    pass
-
-def optimize(x, errors, debug=False):
-    tck1 = interpolate.splrep(x, errors, s=0)
-    der1 = interpolate.splev(x, tck1, der=1)
-    tck2 = interpolate.splrep(x, der1, s=0)
-    roots = interpolate.sproot(tck2)
-    if len(roots) is not 1:
-        print "Warning! Multiple minima, returning average."
-        return N.mean(roots)
-    return roots
-    
-def get_temp(Ti, Tf, transitions, signal, steps=50, debug=False, **settings):
+        
+def get_temp(signal, transitions, debug=False, **settings):
     """ Finds the best-fit temperature for a given signal.
     
     Generates a set of synthetic absorption spectra for a given set of
@@ -54,10 +26,47 @@ def get_temp(Ti, Tf, transitions, signal, steps=50, debug=False, **settings):
     creates a spline for the resulting surface errors and determines 
     the minimum error.
     
-    Keyword arguments:
-    Ti -- 
+    Keyword arguments: 
     """
-    temperatures = N.linspace(Ti, Tf, steps)
+    
+    def model(x, amp, center, drift, T):
+        fwhm_a = settings['pressure'] * torr2hz
+        f = 0
+        V = lineshapes.voigt
+        origin = transitions[0].f
+        for t in transitions:
+            fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
+            temp = amp * 0.5 * (V(x, fwhm_d, fwhm_a, drift, t.f - origin)
+                                + V(x, fwhm_d, fwhm_a, -drift, t.f - origin))
+            # temp = temp * 2 * N.pi * (t.gj/t.gi) * t.l**2 * t.A
+            f += temp
+        return f
+   
+    guesses = (5e7, -0.1e7, 0.1e7, 300)
+    absorption = 1 - signal + settings['voffset']
+    
+    df = (settings['mod_initial']*ma2hz, settings['mod_final']*ma2hz)
+    freq = N.linspace(df[0], df[1], settings['samples'])
+    
+    # import matplotlib.pyplot as plt
+    # x = N.linspace(-4e9, 40e9, 1e3)
+    # plt.plot(x, model(x, 1.0, 0.0, 0.0, 300))
+    # plt.show()
+    
+    temperatures = N.zeros(settings['points'])
+    covariances = [0] * settings['points']
+    for i in range(settings['points']):
+        try:
+            p = scipy.optimize.curve_fit(model, freq, absorption[:, i],
+                                         guesses)
+        except ValueError:
+            temperatures[i] = 0
+            covariances[i] = None
+        else:
+            # print p
+            temperatures[i] = p[0][3]
+            covariances[i] = p[1]
+    return temperatures
 
 def quickndirty(signal, transitions, debug=False, **settings):
 
@@ -115,7 +124,8 @@ def quickndirty(signal, transitions, debug=False, **settings):
     
     if debug:
         # check = [220, 225, 230, 235, 240, 245]
-        check = [250, 450, 700, 1000, 1500, 1999]
+        check = 1e-6 * N.array([69, 100, 150, 200, 350, 300])/settings['dt']
+        check = check.astype(int)
         plt.hold(True)
         pos = 230
         for i in check:
@@ -130,7 +140,6 @@ def quickndirty(signal, transitions, debug=False, **settings):
             plt.subplot(pos)
             plt.plot(1e-9*frequencies, N.max(absorption[:, i]) * match/N.max(match), '-k')
             plt.plot(1e-9*frequencies, absorption[:, i], '.r')
-            mtext.Text(3e9, 0.9, 'T$_g$ = %g' % Tcalc[i])
             plt.axis([ma2hz*1e-9*settings['mod_initial'], ma2hz*1e-9*settings['mod_final'], 0, 1])
             t = i*settings['dt']*1e6
             plt.title('Time = %g $\mu$s' % t)
@@ -139,6 +148,22 @@ def quickndirty(signal, transitions, debug=False, **settings):
             
             print 'Temperature (step %g):' % i, Tcalc[i]
             print 'Error (step %g):' % i, tmp_error
+        plt.show()
+        
+        # Plot temperature decay rate
+        # plt.clf()
+        # time = settings['dt'] * N.arange(settings['points'])
+        # fit = lambda x, a, b, c: a*N.exp(-b*x) + c
+        # start = 750
+        # param = scipy.optimize.curve_fit(fit, time[start:], Tcalc[start:], p0=[Tcalc[start]-Tbase[0], 1e5*settings['dt'], Tbase[0]])
+        # print "Estimated Baseline: %g (K)" % param[0][2]
+        # efold = 1e6/param[0][1]
+        # print "Estimate e-Folding time: %g (us)" % efold
+        # plt.plot(time[start:], Tcalc[start:], '.r')
+        # plt.plot(time[start:], fit(time[start:], *param[0]), '-k')
+        # plt.xlabel('Time ($\mu$s)')
+        # plt.ylabel('Temperature (K)')
+        # plt.legend(('Calculated Temperatures', 'f(t) = %gexp(-%gt)+%g' % (param[0][0], param[0][1], param[0][2])))
+        # plt.show()
     
-    plt.show()
     return Tcalc

@@ -2,18 +2,17 @@ from math import sqrt, log
 import numpy as np
 from scipy.special import wofz
 
-def lorentzian(gamma):
-    def func(x):
-        return 1/(np.pi * gamma * (1 + np.power(x/gamma, 2)))
-    return func
+# TODO: Rewrite for SciPy curve_fit routine
+def lorentzian(x, gamma):
+    return 1/(np.pi * gamma * (1 + np.power(x/gamma, 2)))
 
-def gaussian(fwhm):
+# TODO: Rewrite for SciPy curve_fit routine
+def gaussian(x, fwhm):
     sigma = fwhm/(2*sqrt(2*log(2)))
-    def func(x):
-        return 1/(sigma*sqrt(2*np.pi)) * np.exp(-0.5 * np.power(x/sigma, 2))
-    return func
+    return 1/(sigma*sqrt(2*np.pi)) * np.exp(-0.5 * np.power(x/sigma, 2))
 
-def voigt(fwhm_d, fwhm_a):
+# TODO: Rewrite for SciPy curve_fit routine
+def voigt(x, fwhm_d, fwhm_a, offset=0.0, center=0.0):
     """ Returns a Voigt function using wofz.
     
     This function generates a Voigt function and returns it to the user.
@@ -27,11 +26,10 @@ def voigt(fwhm_d, fwhm_a):
     sigma = fwhm_d/(2*sqrt(2*log(2)))
     # TODO: Verify the factor of 0.5 for gamma!
     gamma = fwhm_a/2
-    def func(x):
-        z = (x + 1j*gamma)/(sigma*sqrt(2))
-        return wofz(z).real/(sigma*sqrt(2*np.pi))
-    return func
+    z = (x + offset + center + 1j*gamma)/(sigma*sqrt(2))
+    return wofz(z).real/(sigma*sqrt(2*np.pi))
     
+# TODO: Rewrite for SciPy curve_fit routine
 def pseudo_voigt(gamma, eta):
     """Generates a pseudo-Voigt function.
     
@@ -42,6 +40,4 @@ def pseudo_voigt(gamma, eta):
     sigma = 2*gamma*sqrt(2*log(2))
     G = gaussian(sigma)
     L = lorentzian(gamma)
-    def func(x):
-        return (1 - eta) * G(x) + eta * L(x)
-    return func
+    return (1 - eta) * G(x) + eta * L(x)

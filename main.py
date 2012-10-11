@@ -41,8 +41,10 @@ reference, reference_t = parse.data(reference_dir, **signal_settings)
 transmitted = preprocess.transmission(signal, reference)
 
 # Pass transmission profiles to analysis routine
-temperatures = analyze.quickndirty(transmitted, transitions, debug=True,
-                                   **signal_settings)
+# temperatures = analyze.quickndirty(transmitted, transitions, debug=True,
+                                   # **signal_settings)
+temperatures = analyze.get_temp(transmitted, transitions, debug=False,
+                                **signal_settings)
                                    
 import matplotlib.pyplot as plt
 plt.plot(1e6*signal_t, temperatures, '-k')
