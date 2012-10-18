@@ -13,10 +13,10 @@ def lorentzian(x, gamma):
     """
     return 1/(np.pi * gamma * (1 + np.power(x/gamma, 2)))
 
-def gaussian(x, sigma):
+def gaussian(x, sigma, x0=0.0):
     """ Evaluation of a gaussian distribution.
     """
-    return 1/(sigma*sqrt(2*np.pi)) * np.exp(-0.5 * np.power(x/sigma, 2))
+    return 1/(sigma*sqrt(2*np.pi)) * np.exp(-0.5 * np.power((x+x0)/sigma, 2))
 
 def voigt(x, sigma, gamma, x0=0.0):
     """Evaluation of a Voigt profile using the complex error function.

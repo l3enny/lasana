@@ -14,7 +14,6 @@ from scipy.optimize import curve_fit
 
 # Included
 from constants import *
-import gui
 import lineshapes
         
 def match(transmission, sigma, guesses, debug=False, **settings):
@@ -26,8 +25,6 @@ def match(transmission, sigma, guesses, debug=False, **settings):
     
     Keyword arguments:
     """
-
-    absorption = 1 - transmission + settings['voffset']
     
     freq = N.linspace(settings['mod_initial'], settings['mod_final'], 
                       settings['samples']) * ma2hz
@@ -35,29 +32,6 @@ def match(transmission, sigma, guesses, debug=False, **settings):
     coeffs = [0] * settings['points']
     cov = [0] * settings['points']
     for i in range(settings['points']):
-        (coeffs[i], cov[i]) = curve_fit(sigma, freq, absorption[:, i], guesses)
-    if debug:
-        check = [400, 800, 1200, 1600, 2000, 2400]
-        for i in check:
-            print "coeffs[%g]:" % i, coeffs[i]
-            set = {'Matched':sigma(freq, *coeffs[i]),
-                   'Measured':absorption[:, i]}
-            gui.slice(**set)
+        (coeffs[i], cov[i]) = curve_fit(sigma, freq, transmission[:, i], guesses)
             
     return (coeffs, cov)
-    
-def densities(transmission, sigma, params, debug=False, **settings):
-    freq = N.linspace(settings['mod_initial'], settings['mod_final'], 
-                      settings['samples']) * ma2hz
-    zero = N.abs(freq).argmin()
-    set = {'Peak Falloff':transmission[zero, :]}
-    gui.slice(**set)
-    
-    n = N.zeros(settings['points'])
-    nint = N.zeros(settings['points'])
-    for i in range(settings['points']):
-        n[i] = -m.log(abs(transmission[zero, i])) / (sigma(0.0, *params[i]))
-        nint[i] = -N.mean(m.log(abs(transmission[:, i])) / (sigma(freq, *params[i])))
-    set = {'Single Point':n, 'Averaged':nint}
-    gui.slice(**set)
-    return n

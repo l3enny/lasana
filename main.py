@@ -12,7 +12,7 @@ import analyze
 from atoms import He
 from constants import *
 import gui
-import lineshapes
+import models
 import parse
 import preprocess
 import transition
@@ -20,7 +20,7 @@ import transition
 # Third Party
 import numpy as N
 
-# Define transitions of interest to simulation
+# Define transitions to simulate
 A = 1.0216e7
 D0 = transition.Transition(He.II3S1(), He.II3P0(), A)
 D1 = transition.Transition(He.II3S1(), He.II3P1(), A)
@@ -38,48 +38,68 @@ reference_settings = parse.config(reference_dir)
 reference, reference_t = parse.data(reference_dir, **signal_settings)
 
 # Calculated transmission profiles with preprocessor
-transmitted = preprocess.transmission(signal, reference)
+transmitted = preprocess.transmission(signal, reference, **signal_settings)
 
-# Define model used to evaluate the transition probabilities
-guesses = [320, 1e13, 1e9]
-def bimodal_voigt(x, T, amp, drift, center=0.0):
-    # Pressure broadening/lorentzian part of profile
-    fwhm_a = signal_settings['pressure'] * torr2hz
-    gamma = fwhm_a/2
-    f = 0
-    V = lineshapes.voigt
-    # TODO: Manual origin setting, assumes the 0.0 frequency shift
-    # is the D0 peak. Should be a better way to do this.
-    origin = D0.f
-    for t in transitions:
-        # Doppler broadening/gaussian part of the profile
-        fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
-        sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
-        temp = 0.5 * (V(x, sigma, gamma, t.f - origin + drift)
-                      + V(x, sigma, gamma, t.f - origin - drift))
-        temp = temp * 2 * N.pi * (t.gj/t.gi) * t.l**2 * t.A
-        f += temp
-    return amp * f
-
+# Define model and some sensible estimates of the parameters
+model = models.voigt(transitions, settings['pressure'])
+guesses = [320, 1e13]#, 5e7]
+    
 # Pass transmission profiles to analysis routine
-(params, cov) = analyze.match(transmitted, bimodal_voigt, guesses, 
-                              debug=False, **signal_settings)
+(params, cov) = analyze.match(transmitted, model, guesses, debug=True,
+                              **signal_settings)
                                     
 temperatures = N.array([i[0] for i in params])
-amplitudes = N.array([i[1] for i in params])
-drifts = N.array([i[2] for i in params])
+metastables = N.array([i[1] for i in params])
+if model is bimodal_voigt:
+    drifts = c * N.array([abs(i[2]) for i in params])/D0.f
 
-modded = [(temperatures[i], 1, drifts[i]) for i in range(signal_settings['points'])]
-metastables = analyze.densities(transmitted, bimodal_voigt, modded, 
-                                debug=False, **signal_settings)
-                                   
+name = "fit_params.csv"
+N.savetxt(name, params, delimiter=",")
 
 import matplotlib.pyplot as plt
+freq = N.linspace(signal_settings['mod_initial'], signal_settings['mod_final'], signal_settings['samples']) * ma2hz + signal_settings['offset']
+time = N.array([62.4, 64.6, 65.2, 65.8, 66.4, 67.2])
+check = 1e-6 * time / signal_settings['dt']
+check = check.astype(int)
+pos = 230
+plt.hold(True)
+for i in check:
+    pos = pos + 1
+    plt.subplot(pos)
+    plt.plot(1e-9 * freq, transmitted[:, i], '.r')
+    plt.plot(1e-9 * freq, model(freq, *params[i]), '-k')
+    t = i * 1e6 * signal_settings['dt']
+    plt.title('Time = %g $\mu$s' % t)
+    plt.axis([1e-9 * N.min(freq), 1e-9 * N.max(freq), 0, 1])
+plt.hold(False)
+# plt.show()
+plt.savefig("samples.pdf")
+plt.savefig("samples.png")
+plt.clf()
+
 plt.plot(1e6*signal_t, temperatures, '-k')
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Temperature (K)')
-plt.show()
+plt.axis([0, 200, 0, 600])
+# plt.show()
+plt.savefig("temperatures.pdf")
+plt.savefig("temperatures.png")
+plt.clf()
+
 plt.plot(1e6*signal_t, metastables, '-k')
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Line-Integrated Metastable Density (m$^{-2}$)')
-plt.show()
+plt.axis([0, 200, 0, 5e16])
+# plt.show()
+plt.savefig("metastables.pdf")
+plt.savefig("metastables.png")
+plt.clf()
+
+if model is bimodal_voigt:
+    plt.plot(1e6*signal_t, drifts, '-k')
+    plt.xlabel('Time ($\mu$s)')
+    plt.ylabel('Drift Velocities (m/s)')
+    plt.axis([0, 200, 0, 500])
+    # plt.show()
+    plt.savefig("drifts.pdf")
+    plt.savefig("drifts.png")
