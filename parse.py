@@ -10,9 +10,10 @@ from os import path
 import sys
 
 # Third party
-import numpy as np
+import numpy as N
 
 # Part of package
+from constants import *
 import preprocess
     
 def config(top_dir='.', debug=False):
@@ -31,8 +32,15 @@ def config(top_dir='.', debug=False):
     pressure = config.getfloat('Settings', 'Pressure')
     offset = config.getfloat('Settings', 'Offset')
     voffset = config.getfloat('Settings', 'Vertical Offset')
-    return {'samples':samples, 'points':points, 'mod_initial':mod_initial,
-            'mod_final':mod_final, 'averages':averages, 'dt':time_domain/points, 'pressure':pressure, 'offset':offset, 'voffset':voffset}
+    return {'samples':samples,
+            'points':points,
+            'mod_initial':mod_initial,
+            'mod_final':mod_final,
+            'averages':averages,
+            'dt':time_domain/points,
+            'pressure':pressure,
+            'offset':offset,
+            'voffset':voffset}
     
 def _load(dir, samples, points, debug=False):
     """Generate data arrays and load data from file.
@@ -41,20 +49,20 @@ def _load(dir, samples, points, debug=False):
     iment. Modify as necessary.
     """
     # Initialize storage arrays
-    pd_b = np.zeros((samples, points))
-    ref_b = np.zeros((samples, points))
-    v_b = np.zeros((samples, points))
-    i_b = np.zeros((samples, points))
-    pd_s = np.zeros((samples, points))
-    ref_s = np.zeros((samples, points))
-    v_s = np.zeros((samples, points))
-    i_s = np.zeros((samples, points))
+    pd_b = N.zeros((samples, points))
+    ref_b = N.zeros((samples, points))
+    v_b = N.zeros((samples, points))
+    i_b = N.zeros((samples, points))
+    pd_s = N.zeros((samples, points))
+    ref_s = N.zeros((samples, points))
+    v_s = N.zeros((samples, points))
+    i_s = N.zeros((samples, points))
     
     # Loop over all acquired files
     for i in range(samples):
-        background = np.loadtxt(path.join(dir, 'Background%g.dat' % i),
+        background = N.loadtxt(path.join(dir, 'Background%g.dat' % i),
                                 delimiter='\t', skiprows=2)
-        signal = np.loadtxt(path.join(dir, 'Signal%g.dat' % i),
+        signal = N.loadtxt(path.join(dir, 'Signal%g.dat' % i),
                             delimiter='\t', skiprows=2)
     
         try:
@@ -89,6 +97,9 @@ def data(dir='.', debug=False, **settings):
     """
    
     trace_dir = path.join(dir, 'Scopes')
-    pd, ref = _load(trace_dir, settings['samples'], settings['points'])
-    t = settings['dt'] * np.arange(settings['points'])
-    return pd, t
+    signal, background = _load(trace_dir, settings['samples'],
+        settings['points'])
+    time = settings['dt'] * N.arange(settings['points'])
+    freq = N.linspace(settings['mod_initial'], settings['mod_final'],
+        settings['samples']) * ma2hz + settings['offset']
+    return signal, time, freq

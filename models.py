@@ -10,8 +10,7 @@ def bimodal_voigt(transitions, p):
         gamma = fwhm_a/2
         f = 0
         V = lineshapes.voigt
-        # TODO: Manual origin setting, assumes the 0.0 frequency shift
-        # is the D0 peak. Should be a better way to do this.
+        # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
@@ -31,8 +30,7 @@ def voigt(transitions, p):
         gamma = fwhm_a/2
         f = 0
         V = lineshapes.voigt
-        # TODO: Manual origin setting, assumes the 0.0 frequency shift
-        # is the D0 peak. Should be a better way to do this.
+        # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
@@ -48,8 +46,7 @@ def gaussian(transitions):
     def func(x, T, amp):
         f = 0
         G = lineshapes.gaussian
-        # TODO: Manual origin setting, assumes the 0.0 frequency shift
-        # is the D0 peak. Should be a better way to do this.
+        # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
