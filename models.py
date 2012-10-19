@@ -1,3 +1,4 @@
+import math as m
 import numpy as N
 from constants import *
 import lineshapes
@@ -11,7 +12,7 @@ def bimodal_voigt(transitions, p):
         V = lineshapes.voigt
         # TODO: Manual origin setting, assumes the 0.0 frequency shift
         # is the D0 peak. Should be a better way to do this.
-        origin = D0.f
+        origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
@@ -32,7 +33,7 @@ def voigt(transitions, p):
         V = lineshapes.voigt
         # TODO: Manual origin setting, assumes the 0.0 frequency shift
         # is the D0 peak. Should be a better way to do this.
-        origin = D0.f
+        origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
@@ -49,7 +50,7 @@ def gaussian(transitions):
         G = lineshapes.gaussian
         # TODO: Manual origin setting, assumes the 0.0 frequency shift
         # is the D0 peak. Should be a better way to do this.
-        origin = D0.f
+        origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f

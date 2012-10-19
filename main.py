@@ -41,8 +41,8 @@ reference, reference_t = parse.data(reference_dir, **signal_settings)
 transmitted = preprocess.transmission(signal, reference, **signal_settings)
 
 # Define model and some sensible estimates of the parameters
-model = models.voigt(transitions, settings['pressure'])
-guesses = [320, 1e13]#, 5e7]
+model = models.voigt(transitions, signal_settings['pressure'])
+guesses = [320, 1e15]#, 5e7]
     
 # Pass transmission profiles to analysis routine
 (params, cov) = analyze.match(transmitted, model, guesses, debug=True,
@@ -50,8 +50,6 @@ guesses = [320, 1e13]#, 5e7]
                                     
 temperatures = N.array([i[0] for i in params])
 metastables = N.array([i[1] for i in params])
-if model is bimodal_voigt:
-    drifts = c * N.array([abs(i[2]) for i in params])/D0.f
 
 name = "fit_params.csv"
 N.savetxt(name, params, delimiter=",")
@@ -94,12 +92,3 @@ plt.axis([0, 200, 0, 5e16])
 plt.savefig("metastables.pdf")
 plt.savefig("metastables.png")
 plt.clf()
-
-if model is bimodal_voigt:
-    plt.plot(1e6*signal_t, drifts, '-k')
-    plt.xlabel('Time ($\mu$s)')
-    plt.ylabel('Drift Velocities (m/s)')
-    plt.axis([0, 200, 0, 500])
-    # plt.show()
-    plt.savefig("drifts.pdf")
-    plt.savefig("drifts.png")
