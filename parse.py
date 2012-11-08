@@ -49,10 +49,10 @@ def _load(dir, samples, points, debug=False):
     iment. Modify as necessary.
     """
     # Initialize storage arrays
-    pd_b = N.zeros((samples, points))
-    ref_b = N.zeros((samples, points))
-    v_b = N.zeros((samples, points))
-    i_b = N.zeros((samples, points))
+    pd_r = N.zeros((samples, points))
+    ref_r = N.zeros((samples, points))
+    v_r = N.zeros((samples, points))
+    i_r = N.zeros((samples, points))
     pd_s = N.zeros((samples, points))
     ref_s = N.zeros((samples, points))
     v_s = N.zeros((samples, points))
@@ -60,26 +60,22 @@ def _load(dir, samples, points, debug=False):
     
     # Loop over all acquired files
     for i in range(samples):
-        background = N.loadtxt(path.join(dir, 'Background%g.dat' % i),
+        reference = N.loadtxt(path.join(dir, 'Reference%g.dat' % i),
                                 delimiter='\t', skiprows=2)
         signal = N.loadtxt(path.join(dir, 'Signal%g.dat' % i),
                             delimiter='\t', skiprows=2)
     
-        try:
-            pd_b[i,:] = background[:,0]
-        except ValueError:
-            print "Inconsistent number of data points, check configuration file."
-            sys.exit(1)
-        ref_b[i,:] = background[:,1]
-        v_b[i,:] = background[:,2]
-        i_b[i,:] = background[:,3]
+        pd_r[i,:] = reference[:,1]
+        ref_r[i,:] = reference[:,2]
+        v_r[i,:] = reference[:,3]
+        i_r[i,:] = reference[:,4]
     
-        pd_s[i,:] = signal[:,0]
-        ref_s[i,:] = signal[:,1]
-        v_s[i,:] = signal[:,2]
-        i_s[i,:] = signal[:,3]
+        pd_s[i,:] = signal[:,1]
+        ref_s[i,:] = signal[:,2]
+        v_s[i,:] = signal[:,3]
+        i_s[i,:] = signal[:,4]
     
-    return (pd_s, pd_b), (ref_s, ref_b)#, (v_s, v_b), (i_s, i_b)
+    return (pd_s, pd_r), (ref_s, ref_r)#, (v_s, v_b), (i_s, i_b)
     
 def data(dir='.', debug=False, **settings):
     """Custom parser for measurement files.
@@ -96,10 +92,10 @@ def data(dir='.', debug=False, **settings):
     top_dir -- the reference directory for measurement files (default '.')
     """
    
-    trace_dir = path.join(dir, 'Scopes')
-    signal, background = _load(trace_dir, settings['samples'],
-        settings['points'])
+    trace_dir = path.join(dir)
+    signal, reference = _load(trace_dir, settings['samples'],
+                              settings['points'])
     time = settings['dt'] * N.arange(settings['points'])
     freq = N.linspace(settings['mod_initial'], settings['mod_final'],
-        settings['samples']) * ma2hz + settings['offset']
+                      settings['samples']) * ma2hz + settings['offset']
     return signal, time, freq

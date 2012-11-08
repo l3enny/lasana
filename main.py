@@ -4,6 +4,9 @@ Makes use of the modules 'parse.py', and 'analyze.py'.
 Submodules notwithstanding.
 """
 
+# Standard
+from os import path
+
 # Part of package
 import analyze
 from atoms import He
@@ -26,38 +29,38 @@ D2 = transition.Transition(He.II3S1(), He.II3P2(), A)
 transitions = [D0, D1, D2]
 
 # Pick directory of signal scan, then parse and load data
-signal_dir = gui.pickdir('Pick the signal directory')
-signal_settings = parse.config(signal_dir)
-signal, signal_t, freq = parse.data(signal_dir, **signal_settings)
-
-# Pick directory of signal scan, then parse and load data
-reference_dir = gui.pickdir('Pick the reference directory', dir=signal_dir)
-reference_settings = parse.config(reference_dir)
-reference, reference_t, freq = parse.data(reference_dir, **signal_settings)
+target = gui.pickdir('Pick the data directory')
+settings = parse.config(target)
+print "Loading data ..."
+plasma, times, freq = parse.data(path.join(target, 'Plasma'), **settings)
+background = parse.data(path.join(target, 'Background'), **settings)[0]
 
 # Calculated transmission profiles with preprocessor
-transmitted = preprocess.transmission(signal, reference, **signal_settings)
+print "Running preprocessor ..."
+transmitted = preprocess.transmission(plasma, background, **settings)
 
 # Define model and some sensible estimates of the parameters
-model = models.bimodal_voigt(transitions, signal_settings['pressure'])
-guesses = [320, 1e15, 5e7]
+model = models.voigt(transitions, settings['pressure'])
+guesses = [300, 1e14]#, 5e7]
 
 # Pass transmission profiles to analysis routine
-params = [0] * signal_settings['points']
-cov = [0] * signal_settings['points']
-for i in range(signal_settings['points']):
-    (params[i], cov[i]) = analyze.match(model, freq, transmitted[:, i], guesses)
+params = [0] * settings['points']
+cov = [0] * settings['points']
+print "Analyzing data ..."
+for i in range(settings['points']):
+    (params[i], cov[i]) = analyze.match(model, freq, transmitted[:, i],
+                                        guesses)
 
 temperatures = N.array([i[0] for i in params])
 metastables = N.array([i[1] for i in params])
-drifts = N.abs(N.array([i[2] for i in params]))
+# drifts = N.abs(N.array([i[2] for i in params]))
 
 name = "fit_params.csv"
 N.savetxt(name, params, delimiter=",")
 
 import matplotlib.pyplot as plt
 time = N.array([5, 10, 25, 45, 70, 100])
-check = N.round(1e-6 * time / signal_settings['dt']).astype(int)
+check = N.round(1e-6 * time / settings['dt']).astype(int)
 pos = 230
 plt.hold(True)
 for i in check:
@@ -65,7 +68,7 @@ for i in check:
     plt.subplot(pos)
     plt.plot(1e-9 * freq, transmitted[:, i], '.r')
     plt.plot(1e-9 * freq, model(freq, *params[i]), '-k')
-    t = i * 1e6 * signal_settings['dt']
+    t = i * 1e6 * settings['dt']
     plt.title('Time = %g $\mu$s' % t)
     plt.axis([1e-9 * N.min(freq), 1e-9 * N.max(freq), 0, 1])
 plt.hold(False)
@@ -74,12 +77,12 @@ plt.savefig("samples.pdf")
 plt.savefig("samples.png")
 plt.clf()
 
-prepulse = 19e-6/signal_settings['dt']
+prepulse = 100
 baseline = N.mean(transmitted[:, :prepulse], axis=1)
 param_base, cov_base = analyze.match(model, freq, baseline, guesses)
 Tbase = param_base[0]
 
-plt.plot(1e6*signal_t, temperatures, '-k')
+plt.plot(1e6*times, temperatures, '-k')
 plt.hold(True)
 plt.plot([0, 200], [Tbase, Tbase], '--k')
 plt.hold(False)
@@ -92,7 +95,7 @@ plt.savefig("temperatures.pdf")
 plt.savefig("temperatures.png")
 plt.clf()
 
-plt.plot(1e6*signal_t, metastables, '-k')
+plt.plot(1e6*times, metastables, '-k')
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Line-Integrated Metastable Density (m$^{-2}$)')
 plt.axis([0, 200, 0, 5e16])
@@ -101,11 +104,11 @@ plt.savefig("metastables.pdf")
 plt.savefig("metastables.png")
 plt.clf()
 
-plt.plot(1e6*signal_t, drifts, '-k')
-plt.xlabel('Time ($\mu$s)')
-plt.ylabel('Drift-induced Frequency Shift(GHz)')
-plt.axis([0, 200, 0, 1e9])
-# plt.show()
-plt.savefig("drifts.pdf")
-plt.savefig("drifts.png")
-plt.clf()
+# plt.plot(1e6*times, drifts, '-k')
+# plt.xlabel('Time ($\mu$s)')
+# plt.ylabel('Drift-induced Frequency Shift(GHz)')
+# plt.axis([0, 200, 0, 1e9])
+# # plt.show()
+# plt.savefig("drifts.pdf")
+# plt.savefig("drifts.png")
+# plt.clf()

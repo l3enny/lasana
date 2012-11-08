@@ -10,7 +10,7 @@ import gui
 # Third party
 import numpy as np
 
-def transmission(signal, reference, debug=False, **settings):
+def transmission(signal, background, debug=False, **settings):
     """Generates a proper transmission curve from input data.
     
     Method subtracts out the plasma-induced emissions (unrelated to the
@@ -18,13 +18,15 @@ def transmission(signal, reference, debug=False, **settings):
     diode power.
     """
     # Determine 100% transmission signal and average over acquisition time
-    unabsorbed = np.mean(reference[0] - reference[1], axis=1)
+    unabsorbed = np.mean(background[0] - background[1], axis=1)
     
     # Correct transmission signal for normal plasma emissions
     signal_total = signal[0]
     signal_plasma = signal[1]
     transmitted = signal_total - signal_plasma + settings['voffset']
     
+    print unabsorbed
+
     # Normalize transmission signal to full transmission value
     baseline_adjusted = transmitted/unabsorbed[:, np.newaxis]
     
