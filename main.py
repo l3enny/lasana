@@ -5,7 +5,7 @@ Submodules notwithstanding.
 """
 
 # Standard
-from os import path
+from os import path, makedirs
 
 # Part of package
 import analyze
@@ -30,6 +30,7 @@ transitions = [D0, D1, D2]
 
 # Pick directory of signal scan, then parse and load data
 target = gui.pickdir('Pick the data directory')
+print "\nProcessing", target
 settings = parse.config(target)
 print "Loading data ..."
 plasma, times, freq = parse.data(path.join(target, 'Plasma'), **settings)
@@ -41,26 +42,41 @@ transmitted = preprocess.transmission(plasma, background, **settings)
 
 # Define model and some sensible estimates of the parameters
 model = models.voigt(transitions, settings['pressure'])
-guesses = [300, 1e14]#, 5e7]
+guesses = [300, 1e16]#, 5e7]
 
 # Pass transmission profiles to analysis routine
 params = [0] * settings['points']
 cov = [0] * settings['points']
 print "Analyzing data ..."
 for i in range(settings['points']):
-    (params[i], cov[i]) = analyze.match(model, freq, transmitted[:, i],
-                                        guesses)
+    try:
+        (params[i], cov[i]) = analyze.match(model, freq, transmitted[:, i],
+                                            guesses)
+    except RuntimeError:
+        # Set values to zero in case of failure to find a match
+        params[i] = N.zeros(len(guesses))
+        cov[i] = N.zeros((len(guesses), len(guesses)))
 
+
+# Everything below this is just data processing
+# TODO: Move to a separate file, automate loading of previous calculations
 temperatures = N.array([i[0] for i in params])
 metastables = N.array([i[1] for i in params])
 # drifts = N.abs(N.array([i[2] for i in params]))
 
-name = "fit_params.csv"
-N.savetxt(name, params, delimiter=",")
+adir = path.join(target, "Analysis")
+if not path.exists(adir):
+    makedirs(adir)
+
+N.savetxt(path.join(adir, "fit_params.csv"), params, delimiter=",")
 
 import matplotlib.pyplot as plt
-time = N.array([5, 10, 25, 45, 70, 100])
-check = N.round(1e-6 * time / settings['dt']).astype(int)
+
+# plt.plot([i[0][0] for i in cov])
+# plt.show()
+
+time = N.array([350, 400, 500, 1000, 1500, 1750])
+check = N.round(1e-9 * time / settings['dt']).astype(int)
 pos = 230
 plt.hold(True)
 for i in check:
@@ -73,8 +89,8 @@ for i in check:
     plt.axis([1e-9 * N.min(freq), 1e-9 * N.max(freq), 0, 1])
 plt.hold(False)
 # plt.show()
-plt.savefig("samples.pdf")
-plt.savefig("samples.png")
+plt.savefig(path.join(adir, r"samples.pdf"))
+plt.savefig(path.join(adir, r"samples.png"))
 plt.clf()
 
 prepulse = 100
@@ -88,20 +104,20 @@ plt.plot([0, 200], [Tbase, Tbase], '--k')
 plt.hold(False)
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Temperature (K)')
-plt.axis([0, 200, 0, 600])
+plt.axis([0, 2, 0, 600])
 plt.legend(['Temperatures', 'Pre-pulse, T =%g' % Tbase])
 # plt.show()
-plt.savefig("temperatures.pdf")
-plt.savefig("temperatures.png")
+plt.savefig(path.join(adir, r"temperatures.pdf"))
+plt.savefig(path.join(adir, r"temperatures.png"))
 plt.clf()
 
 plt.plot(1e6*times, metastables, '-k')
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Line-Integrated Metastable Density (m$^{-2}$)')
-plt.axis([0, 200, 0, 5e16])
+plt.axis([0, 2, 0, 5e16])
 # plt.show()
-plt.savefig("metastables.pdf")
-plt.savefig("metastables.png")
+plt.savefig(path.join(adir, r"metastables.pdf"))
+plt.savefig(path.join(adir, r"metastables.png"))
 plt.clf()
 
 # plt.plot(1e6*times, drifts, '-k')

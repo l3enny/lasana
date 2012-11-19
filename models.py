@@ -16,8 +16,8 @@ def bimodal_voigt(transitions, p):
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
-            temp = 0.5 * (V(x, sigma, gamma, t.f - origin + drift)
-                          + V(x, sigma, gamma, t.f - origin - drift))
+            temp = 0.5 * (V(x + t.f - origin + drift, sigma, gamma)
+                          + V(x + t.f - origin + drift, sigma, gamma))
             temp = temp * t.l**2 * t.A * (t.gj/t.gi) / (8 * N.pi)
             f += temp
         return N.exp(- amp * f)
@@ -36,7 +36,7 @@ def voigt(transitions, p):
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
-            temp = V(x, sigma, gamma, t.f - origin)
+            temp = V(x + t.f - origin, sigma, gamma)
             temp = temp * t.l**2 * t.A * (t.gj/t.gi) / (8 * N.pi)
             f += temp
         return N.exp(- amp * f)
@@ -52,7 +52,7 @@ def gaussian(transitions):
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
-            temp = G(x, sigma, t.f - origin)
+            temp = G(x + t.f - origin, sigma)
             temp = temp * t.A * t.l**2 * (t.gj/t.gi) / (8*N.pi)
             f += temp
         return N.exp(- amp * f)

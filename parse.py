@@ -61,19 +61,19 @@ def _load(dir, samples, points, debug=False):
     # Loop over all acquired files
     for i in range(samples):
         reference = N.loadtxt(path.join(dir, 'Reference%g.dat' % i),
-                                delimiter='\t', skiprows=2)
+                              delimiter='\t', usecols=(1,2,3,4))
         signal = N.loadtxt(path.join(dir, 'Signal%g.dat' % i),
-                            delimiter='\t', skiprows=2)
+                           delimiter='\t', usecols=(1,2,3,4))
+
+        pd_r[i,:] = reference[:,0]
+        ref_r[i,:] = reference[:,1]
+        v_r[i,:] = reference[:,2]
+        i_r[i,:] = reference[:,3]
     
-        pd_r[i,:] = reference[:,1]
-        ref_r[i,:] = reference[:,2]
-        v_r[i,:] = reference[:,3]
-        i_r[i,:] = reference[:,4]
-    
-        pd_s[i,:] = signal[:,1]
-        ref_s[i,:] = signal[:,2]
-        v_s[i,:] = signal[:,3]
-        i_s[i,:] = signal[:,4]
+        pd_s[i,:] = signal[:,0]
+        ref_s[i,:] = signal[:,1]
+        v_s[i,:] = signal[:,2]
+        i_s[i,:] = signal[:,3]
     
     return (pd_s, pd_r), (ref_s, ref_r)#, (v_s, v_b), (i_s, i_b)
     

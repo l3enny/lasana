@@ -19,5 +19,3 @@ def match(sigma, freq, measured, guesses, debug=False):
     Keyword arguments:
     """
     return curve_fit(sigma, freq, measured, guesses)
-
-    

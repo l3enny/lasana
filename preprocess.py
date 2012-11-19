@@ -25,8 +25,6 @@ def transmission(signal, background, debug=False, **settings):
     signal_plasma = signal[1]
     transmitted = signal_total - signal_plasma + settings['voffset']
     
-    print unabsorbed
-
     # Normalize transmission signal to full transmission value
     baseline_adjusted = transmitted/unabsorbed[:, np.newaxis]
     
