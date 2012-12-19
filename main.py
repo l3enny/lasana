@@ -33,8 +33,8 @@ target = gui.pickdir('Pick the data directory')
 print "\nProcessing", target
 settings = parse.config(target)
 print "Loading data ..."
-plasma, times, freq = parse.data(path.join(target, 'Plasma'), **settings)
-background = parse.data(path.join(target, 'Background'), **settings)[0]
+plasma, times, freq = parse.data(path.join(target, 'Plasma'), obsolete=True, **settings)
+background = parse.data(path.join(target, 'Background'), obsolete=True, **settings)[0]
 
 # Calculated transmission profiles with preprocessor
 print "Running preprocessor ..."
@@ -75,8 +75,8 @@ import matplotlib.pyplot as plt
 # plt.plot([i[0][0] for i in cov])
 # plt.show()
 
-time = N.array([350, 400, 500, 1000, 1500, 1750])
-check = N.round(1e-9 * time / settings['dt']).astype(int)
+time = N.array([0, 29.5, 50, 70.4, 75.6, 99])
+check = N.round(1e-6 * time / settings['dt']).astype(int)
 pos = 230
 plt.hold(True)
 for i in check:
@@ -84,9 +84,10 @@ for i in check:
     plt.subplot(pos)
     plt.plot(1e-9 * freq, transmitted[:, i], '.r')
     plt.plot(1e-9 * freq, model(freq, *params[i]), '-k')
+    plt.hlines(1.0, 1e-9 * N.min(freq), 1e-9 * N.max(freq), colors='k', linestyles='dashed')
     t = i * 1e6 * settings['dt']
     plt.title('Time = %g $\mu$s' % t)
-    plt.axis([1e-9 * N.min(freq), 1e-9 * N.max(freq), 0, 1])
+    plt.axis([1e-9 * N.min(freq), 1e-9 * N.max(freq), 0, 1.1])
 plt.hold(False)
 # plt.show()
 plt.savefig(path.join(adir, r"samples.pdf"))
@@ -104,7 +105,7 @@ plt.plot([0, 200], [Tbase, Tbase], '--k')
 plt.hold(False)
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Temperature (K)')
-plt.axis([0, 2, 0, 600])
+plt.axis([0, max(1e6*times), 0, 600])
 plt.legend(['Temperatures', 'Pre-pulse, T =%g' % Tbase])
 # plt.show()
 plt.savefig(path.join(adir, r"temperatures.pdf"))
@@ -114,7 +115,7 @@ plt.clf()
 plt.plot(1e6*times, metastables, '-k')
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Line-Integrated Metastable Density (m$^{-2}$)')
-plt.axis([0, 2, 0, 5e16])
+plt.axis([0, max(1e6*times), 0, 5e16])
 # plt.show()
 plt.savefig(path.join(adir, r"metastables.pdf"))
 plt.savefig(path.join(adir, r"metastables.png"))
