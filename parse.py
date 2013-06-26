@@ -81,7 +81,10 @@ def _load(dir, samples, points, obsolete, debug=False):
         v_s[i,:] = signal[:,2]
         i_s[i,:] = signal[:,3]
     
-    return (pd_s, pd_r), (ref_s, ref_r)#, (v_s, v_b), (i_s, i_b)
+    return (pd_s, pd_r), (ref_s, ref_r)
+           #(ref_s, ref_r),
+           #(v_s, v_r),
+           #(i_s, i_r)
     
 def data(dir='.', obsolete=False, debug=False, **settings):
     """Custom parser for measurement files.

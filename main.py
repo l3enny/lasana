@@ -33,8 +33,8 @@ target = gui.pickdir('Pick the data directory')
 print "\nProcessing", target
 settings = parse.config(target)
 print "Loading data ..."
-plasma, times, freq = parse.data(path.join(target, 'Plasma'), obsolete=True, **settings)
-background = parse.data(path.join(target, 'Background'), obsolete=True, **settings)[0]
+plasma, times, freq = parse.data(path.join(target, 'Plasma'), **settings)
+background = parse.data(path.join(target, 'Background'), **settings)[0]
 
 # Calculated transmission profiles with preprocessor
 print "Running preprocessor ..."
@@ -75,7 +75,8 @@ import matplotlib.pyplot as plt
 # plt.plot([i[0][0] for i in cov])
 # plt.show()
 
-time = N.array([0, 29.5, 50, 70.4, 75.6, 99])
+#time = N.array([0, 29.5, 50, 70.4, 75.6, 99])
+time = N.array([0.35, 0.4, 0.5, 1.0, 1.5, 1.75])
 check = N.round(1e-6 * time / settings['dt']).astype(int)
 pos = 230
 plt.hold(True)
