@@ -35,8 +35,8 @@ target = gui.pickdir('Pick the data directory')
 print "\nProcessing", target
 settings = parse.config(target)
 print "Loading data ..."
-plasma, times, freq = parse.data(path.join(target, 'Plasma'), **settings)
-background = parse.data(path.join(target, 'Background'), **settings)[0]
+plasma, times, freq = parse.data(path.join(target, 'Plasma'), obsolete=True, **settings)
+background = parse.data(path.join(target, 'Background'), obsolete=True, **settings)[0]
 
 # Calculated transmission profiles with preprocessor
 print "Running preprocessor ..."
@@ -59,15 +59,17 @@ def model(x, T, amp, offset):
         temp = temp * t.l**2 * t.A * (t.gj/t.gi) / (8 * N.pi)
         f += temp
     return N.exp(- amp * f)
-guesses = [300, 5e15, 10e6]
+guesses = [300, 5e15, -10e6]
 
 # print "Test model:", model(freq, 2.45250963e3, 5.44238643e14, 0.0)
 
 # Find the offset for the "largest signal"
-mn = N.mean(transmitted, axis=0)
-largest = N.where(min(mn) == mn)[0]
+mn = N.std(transmitted, axis=0)
+largest = N.where(max(mn) == mn)[0]
+# largest = 2500
 (p, co) = curve_fit(model, freq, transmitted[:, largest][:,0], guesses)
 
+print "Largest:", largest
 print "Offset is:", p[2], "Hz"
 
 # import matplotlib.pyplot as plt

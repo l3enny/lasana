@@ -6,13 +6,13 @@ import lineshapes
 def bimodal_voigt(transitions, p):
     def func(x, T, amp, drift):
         # Pressure broadening/lorentzian part of profile
-        fwhm_a = p * torr2hz
-        gamma = fwhm_a/2
         f = 0
         V = lineshapes.voigt
         # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
+            fwhm_a = t.A + p * torr2hz
+            gamma = fwhm_a/2
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
@@ -26,13 +26,13 @@ def bimodal_voigt(transitions, p):
 def voigt(transitions, p):
     def func(x, T, amp):
         # Pressure broadening/lorentzian part of profile
-        fwhm_a = p * torr2hz
-        gamma = fwhm_a/2
         f = 0
         V = lineshapes.voigt
         # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
+            fwhm_a = t.A + p * torr2hz
+            gamma = fwhm_a/2
             # Doppler broadening/gaussian part of the profile
             fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))

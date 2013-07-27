@@ -42,7 +42,7 @@ def config(top_dir='.', debug=False):
             'offset':offset,
             'voffset':voffset}
     
-def _load(dir, samples, points, debug=False):
+def _load(dir, samples, points, obsolete, debug=False):
     """Generate data arrays and load data from file.
     
     Private method for reading in data in the format determined by my exper-
@@ -60,10 +60,16 @@ def _load(dir, samples, points, debug=False):
     
     # Loop over all acquired files
     for i in range(samples):
-        reference = N.loadtxt(path.join(dir, 'Reference%g.dat' % i),
-                              delimiter='\t', usecols=(1,2,3,4))
-        signal = N.loadtxt(path.join(dir, 'Signal%g.dat' % i),
-                           delimiter='\t', usecols=(1,2,3,4))
+        if obsolete:
+            reference = N.loadtxt(path.join(dir, 'Reference%g.dat' % i),
+                                  delimiter='\t', skiprows=2)
+            signal = N.loadtxt(path.join(dir, 'Signal%g.dat' % i),
+                               delimiter='\t', skiprows=2)
+        else:
+            reference = N.loadtxt(path.join(dir, 'Reference%g.dat' % i),
+                                  delimiter='\t', usecols=(1,2,3,4))
+            signal = N.loadtxt(path.join(dir, 'Signal%g.dat' % i),
+                               delimiter='\t', usecols=(1,2,3,4))
 
         pd_r[i,:] = reference[:,0]
         ref_r[i,:] = reference[:,1]
@@ -75,9 +81,12 @@ def _load(dir, samples, points, debug=False):
         v_s[i,:] = signal[:,2]
         i_s[i,:] = signal[:,3]
     
-    return (pd_s, pd_r), (ref_s, ref_r)#, (v_s, v_b), (i_s, i_b)
+    return (pd_s, pd_r), (ref_s, ref_r)
+           #(ref_s, ref_r),
+           #(v_s, v_r),
+           #(i_s, i_r)
     
-def data(dir='.', debug=False, **settings):
+def data(dir='.', obsolete=False, debug=False, **settings):
     """Custom parser for measurement files.
     
     Reads in the data related to a particular set of measurements. Assumes
@@ -91,11 +100,12 @@ def data(dir='.', debug=False, **settings):
     Keyword arguments:
     top_dir -- the reference directory for measurement files (default '.')
     """
-   
+    if obsolete:
+        print "*WARNING* You're running with the obsolete parser."
     trace_dir = path.join(dir)
     signal, reference = _load(trace_dir, settings['samples'],
-                              settings['points'])
-    time = settings['dt'] * N.arange(settings['points'])
+                              settings['points'], obsolete)
+    times = settings['dt'] * N.arange(settings['points'])
     freq = N.linspace(settings['mod_initial'], settings['mod_final'],
                       settings['samples']) * ma2hz + settings['offset']
-    return signal, time, freq
+    return signal, times, freq
