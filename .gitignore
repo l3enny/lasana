@@ -3,4 +3,5 @@
 *.csv
 *.xlsx
 *.pdf
+.DS_Store
 *.png
