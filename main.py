@@ -52,6 +52,8 @@ for i in range(settings['points']):
     try:
         (params[i], cov[i]) = analyze.match(model, freq, transmitted[:, i],
                                             guesses)
+        if cov[i] is N.inf:
+            cov[i] = N.zeros((len(guesses), len(guesses)))
     except RuntimeError:
         # Set values to zero in case of failure to find a match
         params[i] = N.zeros(len(guesses))
@@ -61,14 +63,19 @@ for i in range(settings['points']):
 # Everything below this is just data processing
 # TODO: Move to a separate file, automate loading of previous calculations
 temperatures = N.array([i[0] for i in params])
+temperatures_stdev = N.sqrt(N.array([i[0, 0] for i in cov]))
 metastables = N.array([i[1] for i in params])
-# drifts = N.abs(N.array([i[2] for i in params]))
+metastables_stdev = N.sqrt(N.array([i[1, 1] for i in cov]))
 
 adir = path.join(target, "Analysis")
 if not path.exists(adir):
     makedirs(adir)
 
-N.savetxt(path.join(adir, "fit_params.csv"), params, delimiter=",")
+output = N.array([temperatures, temperatures_stdev, metastables,
+                 metastables_stdev])
+with open(path.join(adir, "fit_params.csv"), mode="wb") as f:
+    f.write("Temperatures,+-,Metastables,+-\n")
+    N.savetxt(f, output.T, delimiter=",")
 
 import matplotlib.pyplot as plt
 
