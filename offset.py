@@ -10,7 +10,7 @@ import math as m
 
 # Part of package
 from atoms import He
-from constants import *
+
 import gui
 import lineshapes
 import parse
@@ -20,6 +20,9 @@ import transition
 # Third Party
 import numpy as N
 from scipy.optimize import curve_fit
+from scipy.constants import k, c
+
+torr2hz = 25.6e6 # pressure broadening coefficient
 
 # Define transitions to simulate
 # TODO: Find better way to set up a database of transmission constants than
@@ -35,8 +38,8 @@ target = gui.pickdir('Pick the data directory')
 print "\nProcessing", target
 settings = parse.config(target)
 print "Loading data ..."
-plasma, times, freq = parse.data(path.join(target, 'Plasma'), obsolete=True, **settings)
-background = parse.data(path.join(target, 'Background'), obsolete=True, **settings)[0]
+plasma, times, freq = parse.data(path.join(target, 'Plasma'), obsolete=False, **settings)
+background = parse.data(path.join(target, 'Background'), obsolete=False, **settings)[0]
 
 # Calculated transmission profiles with preprocessor
 print "Running preprocessor ..."
@@ -45,15 +48,16 @@ transmitted = preprocess.transmission(plasma, background, **settings)
 # Define model and some sensible estimates of the parameters
 def model(x, T, amp, offset):
     # Pressure broadening/lorentzian part of profile
-    fwhm_a = settings['pressure'] * torr2hz
-    gamma = fwhm_a/2
     f = 0
     V = lineshapes.voigt
+
     # Assumes origin is located at the center of the first listed transition
     origin = transitions[0].f
     for t in transitions:
+        fwhm_a = t.A + settings['pressure'] * torr2hz
+        gamma = fwhm_a/2
         # Doppler broadening/gaussian part of the profile
-        fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
+        fwhm_d = N.sqrt((8*m.log(2)) * k*T / (t.M*c**2)) * t.f
         sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
         temp = V(x + t.f - origin + offset, sigma, gamma)
         temp = temp * t.l**2 * t.A * (t.gj/t.gi) / (8 * N.pi)
@@ -61,20 +65,10 @@ def model(x, T, amp, offset):
     return N.exp(- amp * f)
 guesses = [300, 5e15, -10e6]
 
-# print "Test model:", model(freq, 2.45250963e3, 5.44238643e14, 0.0)
-
 # Find the offset for the "largest signal"
 mn = N.std(transmitted, axis=0)
 largest = N.where(max(mn) == mn)[0]
-# largest = 2500
 (p, co) = curve_fit(model, freq, transmitted[:, largest][:,0], guesses)
 
 print "Largest:", largest
 print "Offset is:", p[2], "Hz"
-
-# import matplotlib.pyplot as plt
-# plt.hold(True)
-# plt.plot(freq, transmitted[:, largest][:,0], '.r')
-# plt.plot(freq, model(freq, p[0], p[1], p[2]), '-k')
-# plt.axis([min(freq), max(freq), 0, 1])
-# plt.show()

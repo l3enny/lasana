@@ -13,7 +13,6 @@ import sys
 import numpy as N
 
 # Part of package
-from constants import *
 import preprocess
     
 def config(top_dir='.', debug=False):
@@ -82,9 +81,6 @@ def _load(dir, samples, points, obsolete, debug=False):
         i_s[i,:] = signal[:,3]
     
     return (pd_s, pd_r), (ref_s, ref_r)
-           #(ref_s, ref_r),
-           #(v_s, v_r),
-           #(i_s, i_r)
     
 def data(dir='.', obsolete=False, debug=False, **settings):
     """Custom parser for measurement files.
@@ -100,6 +96,9 @@ def data(dir='.', obsolete=False, debug=False, **settings):
     Keyword arguments:
     top_dir -- the reference directory for measurement files (default '.')
     """
+
+    ma2hz = 0.6067e9 # diode-specific tuning values
+
     if obsolete:
         print "*WARNING* You're running with the obsolete parser."
     trace_dir = path.join(dir)

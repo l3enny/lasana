@@ -41,12 +41,12 @@ print "Running preprocessor ..."
 transmitted = preprocess.transmission(plasma, background, **settings)
 
 # Define model and some sensible estimates of the parameters
-model = models.voigt(transitions, settings['pressure'])
-guesses = [300, 1e16]#, 5e7]
+model = models.voigt(transitions, settings['pressure'] * He.torr2hz)
+guesses = [300, 1e16]
 
 # Pass transmission profiles to analysis routine
-params = [0] * settings['points']
-cov = [0] * settings['points']
+params = [0] * settings['points'] # matching parameter list
+cov = [0] * settings['points']    # covariance estimate list
 print "Analyzing data ..."
 for i in range(settings['points']):
     try:
@@ -60,8 +60,8 @@ for i in range(settings['points']):
         cov[i] = N.zeros((len(guesses), len(guesses)))
 
 
-# Everything below this is just data processing
-# TODO: Move to a separate file, automate loading of previous calculations
+# Everything below this is just data processing ------------------------------
+
 temperatures = N.array([i[0] for i in params])
 temperatures_stdev = N.sqrt(N.array([i[0, 0] for i in cov]))
 metastables = N.array([i[1] for i in params])
@@ -79,10 +79,6 @@ with open(path.join(adir, "fit_params.csv"), mode="wb") as f:
 
 import matplotlib.pyplot as plt
 
-# plt.plot([i[0][0] for i in cov])
-# plt.show()
-
-#time = N.array([0, 29.5, 50, 70.4, 75.6, 99])
 time = N.array([0.35, 0.4, 0.5, 1.0, 1.5, 1.75])
 check = N.round(1e-6 * time / settings['dt']).astype(int)
 pos = 230
@@ -92,12 +88,12 @@ for i in check:
     plt.subplot(pos)
     plt.plot(1e-9 * freq, transmitted[:, i], '.r')
     plt.plot(1e-9 * freq, model(freq, *params[i]), '-k')
-    plt.hlines(1.0, 1e-9 * N.min(freq), 1e-9 * N.max(freq), colors='k', linestyles='dashed')
+    plt.hlines(1.0, 1e-9 * N.min(freq), 1e-9 * N.max(freq), colors='k',
+               linestyles='dashed')
     t = i * 1e6 * settings['dt']
     plt.title('Time = %g $\mu$s' % t)
     plt.axis([1e-9 * N.min(freq), 1e-9 * N.max(freq), 0, 1.1])
 plt.hold(False)
-# plt.show()
 plt.savefig(path.join(adir, r"samples.pdf"))
 plt.savefig(path.join(adir, r"samples.png"))
 plt.clf()
@@ -115,7 +111,6 @@ plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Temperature (K)')
 plt.axis([0, max(1e6*times), 0, 600])
 plt.legend(['Temperatures', 'Pre-pulse, T =%g' % Tbase])
-# plt.show()
 plt.savefig(path.join(adir, r"temperatures.pdf"))
 plt.savefig(path.join(adir, r"temperatures.png"))
 plt.clf()
@@ -124,16 +119,6 @@ plt.plot(1e6*times, metastables, '-k')
 plt.xlabel('Time ($\mu$s)')
 plt.ylabel('Line-Integrated Metastable Density (m$^{-2}$)')
 plt.axis([0, max(1e6*times), 0, 5e16])
-# plt.show()
 plt.savefig(path.join(adir, r"metastables.pdf"))
 plt.savefig(path.join(adir, r"metastables.png"))
 plt.clf()
-
-# plt.plot(1e6*times, drifts, '-k')
-# plt.xlabel('Time ($\mu$s)')
-# plt.ylabel('Drift-induced Frequency Shift(GHz)')
-# plt.axis([0, 200, 0, 1e9])
-# # plt.show()
-# plt.savefig("drifts.pdf")
-# plt.savefig("drifts.png")
-# plt.clf()

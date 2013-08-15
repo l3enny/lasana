@@ -1,9 +1,9 @@
 import math as m
 import numpy as N
-from constants import *
+from scipy.constants import k, c
 import lineshapes
 
-def bimodal_voigt(transitions, p):
+def bimodal_voigt(transitions, fwhm_p):
     def func(x, T, amp, drift):
         # Pressure broadening/lorentzian part of profile
         f = 0
@@ -11,10 +11,10 @@ def bimodal_voigt(transitions, p):
         # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
-            fwhm_a = t.A + p * torr2hz
+            fwhm_a = t.A + fwhm_p
             gamma = fwhm_a/2
             # Doppler broadening/gaussian part of the profile
-            fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
+            fwhm_d = N.sqrt((8*m.log(2)) * k*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
             temp = 0.5 * (V(x + t.f - origin + drift, sigma, gamma)
                           + V(x + t.f - origin + drift, sigma, gamma))
@@ -23,7 +23,7 @@ def bimodal_voigt(transitions, p):
         return N.exp(- amp * f)
     return func
 
-def voigt(transitions, p):
+def voigt(transitions, fwhm_p):
     def func(x, T, amp):
         # Pressure broadening/lorentzian part of profile
         f = 0
@@ -31,10 +31,10 @@ def voigt(transitions, p):
         # Assumes origin is located at the center of the first listed transition
         origin = transitions[0].f
         for t in transitions:
-            fwhm_a = t.A + p * torr2hz
+            fwhm_a = t.A + fwhm_p
             gamma = fwhm_a/2
             # Doppler broadening/gaussian part of the profile
-            fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
+            fwhm_d = N.sqrt((8*m.log(2)) * k*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
             temp = V(x + t.f - origin, sigma, gamma)
             temp = temp * t.l**2 * t.A * (t.gj/t.gi) / (8 * N.pi)
@@ -50,7 +50,7 @@ def gaussian(transitions):
         origin = transitions[0].f
         for t in transitions:
             # Doppler broadening/gaussian part of the profile
-            fwhm_d = N.sqrt((8*m.log(2)) * kB*T / (t.M*c**2)) * t.f
+            fwhm_d = N.sqrt((8*m.log(2)) * k*T / (t.M*c**2)) * t.f
             sigma = fwhm_d/(2*m.sqrt(2*m.log(2)))
             temp = G(x + t.f - origin, sigma)
             temp = temp * t.A * t.l**2 * (t.gj/t.gi) / (8*N.pi)
