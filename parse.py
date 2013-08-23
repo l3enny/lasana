@@ -12,9 +12,6 @@ import sys
 # Third party
 import numpy as N
 
-# Part of package
-import preprocess
-    
 def config(top_dir='.', debug=False):
     # Parse the settings file, check for proper formatting
     config = ConfigParser.RawConfigParser()
